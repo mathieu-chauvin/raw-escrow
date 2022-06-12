@@ -14,7 +14,7 @@ describe("escrow", ()=>{
     let connection = new web3.Connection(
         'http://localhost:8899',
         'confirmed',
-    )
+    );
 
 
     it("alice sends to bob", async ()=> {
@@ -87,13 +87,9 @@ describe("escrow", ()=>{
                 toPubkey:chest.publicKey,
                 lamports:1*web3.LAMPORTS_PER_SOL,
             })
-        )
+        );
     
         await web3.sendAndConfirmTransaction(connection, transaction, [alice, chest]);
-
-        
-        
-
 
         const programBalance = await connection.getBalance(chest.publicKey);
 
@@ -121,25 +117,30 @@ describe("escrow", ()=>{
         console.log('alice');
         console.log(alice.publicKey.toBase58());
 
-        const chestKey = web3.Keypair.generate();
-        const chest = [chestKey.publicKey];
+        //const chestKey = web3.Keypair.generate();
+        //const chest = [chestKey.publicKey];
 
         //web3.Keypair.fromSeed
-        //const chest = web3.PublicKey.findProgramAddressSync([Buffer.from("chest")],programKey);
+        const chest = web3.PublicKey.findProgramAddressSync([Buffer.from("chestb")],programKey);
 
 
         console.log('chest');
         console.log(chest[0].toBase58())
+
+        console.log('chest seeds');
+        console.log(chest[1]);
 
         const bob = web3.Keypair.generate();
 
         console.log('bob');
         console.log(bob.publicKey.toBase58());
 
+        //chest[1]+=1;
+
         
         
 
-        const transaction = new web3.Transaction().add(
+        /*const transaction = new web3.Transaction().add(
             web3.SystemProgram.createAccount({
                 fromPubkey:alice.publicKey,
                 newAccountPubkey:chest[0],
@@ -147,28 +148,34 @@ describe("escrow", ()=>{
                 programId:programKey,//web3.SystemProgram.programId,
                 space:10,
             }),
-            /*web3.SystemProgram.createAccount({
+            web3.SystemProgram.createAccount({
                 fromPubkey:alice.publicKey,
                 newAccountPubkey:bob.publicKey,
                 lamports:web3.LAMPORTS_PER_SOL/100,
                 programId:web3.SystemProgram.programId,
                 space:10,
-            }),*/
+            }),
             //web3.SystemProgram.transfer({fromPubkey:alice.publicKey, toPubkey:chest[0], lamports:web3.LAMPORTS_PER_SOL}),
             
         )
     
-        await web3.sendAndConfirmTransaction(connection, transaction, [alice, chestKey]);
+        await web3.sendAndConfirmTransaction(connection, transaction, [alice, chestKey]);*/
+
+        //const instruction_data=Buffer.from(chest[1])
+
+        const instruction_data = Uint8Array.from([chest[1]]);
 
         const transaction2 = new web3.Transaction().add(
             new web3.TransactionInstruction({
                 programId:programKey,
                 keys:[
-                    //{pubkey:alice.publicKey, isSigner:true, isWritable:false},
-                    {pubkey:chest[0], isSigner:true, isWritable:true},
+                    {pubkey:alice.publicKey, isSigner:true, isWritable:false},
                     {pubkey:bob.publicKey, isSigner:false, isWritable:true},
-                    //{pubkey:web3.SystemProgram.programId, isSigner:false, isWritable:false}
-                ]
+                    {pubkey:chest[0], isSigner:false, isWritable:true},
+                    //{pubkey:chest[0], isSigner:false, isWritable:true},
+                    {pubkey:web3.SystemProgram.programId, isSigner:false, isWritable:false},
+                ],
+                data:Buffer.from(instruction_data),
 
             })
         );
@@ -186,7 +193,7 @@ describe("escrow", ()=>{
             })
         );*/
 
-        await web3.sendAndConfirmTransaction(connection,transaction2,[alice, chestKey]);
+        await web3.sendAndConfirmTransaction(connection,transaction2,[alice]);
 
 
         const aliceBalance = await connection.getBalance(alice.publicKey);
@@ -199,8 +206,7 @@ describe("escrow", ()=>{
 
         const bobBalance = await connection.getBalance(bob.publicKey);
 
-        expect(bobBalance).to.equal(web3.LAMPORTS_PER_SOL);
-    
+        expect(bobBalance).to.equal(web3.LAMPORTS_PER_SOL/10);
     
 
     });
