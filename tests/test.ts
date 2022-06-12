@@ -202,7 +202,7 @@ describe("escrow", ()=>{
 
         const chestBalance = await connection.getBalance(chest[0]);
 
-        expect(chestBalance).to.equal(0);
+        expect(chestBalance).to.equal(await connection.getMinimumBalanceForRentExemption(1));
 
         const bobBalance = await connection.getBalance(bob.publicKey);
 

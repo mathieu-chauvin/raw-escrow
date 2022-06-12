@@ -1,4 +1,4 @@
-use solana_program::{pubkey::Pubkey,system_instruction, program::{invoke,invoke_signed}, account_info::{AccountInfo,next_account_info}, entrypoint::ProgramResult, msg};
+use solana_program::{rent::Rent,pubkey::Pubkey,system_instruction, program::{invoke,invoke_signed}, account_info::{AccountInfo,next_account_info}, entrypoint::ProgramResult, msg};
 
 pub fn process_instruction(program_id:&Pubkey, accounts:&[AccountInfo], instruction_data:&[u8])->ProgramResult{
 
@@ -32,8 +32,8 @@ pub fn process_instruction(program_id:&Pubkey, accounts:&[AccountInfo], instruct
     msg!("invoking");
     //
     //msg!("{}",pda_expected);
-   
-      
+
+    
 
 
     if (**pda_account_info.try_borrow_mut_lamports()?) == 0 {
@@ -42,7 +42,7 @@ pub fn process_instruction(program_id:&Pubkey, accounts:&[AccountInfo], instruct
         let ix = system_instruction::create_account(
             &source.key,
             &pda_account_info.key,
-            100000000,
+            Rent::default().minimum_balance(1),
             1,
             program_id
         );
@@ -63,8 +63,9 @@ pub fn process_instruction(program_id:&Pubkey, accounts:&[AccountInfo], instruct
         msg!("pda is not empty");   
     }
 
-    **destination.try_borrow_mut_lamports()? += **pda_account_info.try_borrow_mut_lamports()?;
-    **pda_account_info.try_borrow_mut_lamports()? = 0;
+    let amount = **pda_account_info.try_borrow_mut_lamports()? - Rent::default().minimum_balance(1);
+    **destination.try_borrow_mut_lamports()? += amount;
+    **pda_account_info.try_borrow_mut_lamports()? -= amount;
 
    Ok(())
 }
