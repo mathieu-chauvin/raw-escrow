@@ -135,37 +135,21 @@ describe("escrow", ()=>{
         console.log('bob');
         console.log(bob.publicKey.toBase58());
 
+        let airdropSignature2 = await connection.requestAirdrop(bob.publicKey, 5 * web3.LAMPORTS_PER_SOL);
+        const latestBlockhash2 = await connection.getLatestBlockhash('confirmed');
+    
+        await connection.confirmTransaction({
+            signature:airdropSignature,
+            blockhash:latestBlockhash.blockhash,
+            lastValidBlockHeight:latestBlockhash.lastValidBlockHeight
+        });
+
         //chest[1]+=1;
 
-        
-        
 
-        /*const transaction = new web3.Transaction().add(
-            web3.SystemProgram.createAccount({
-                fromPubkey:alice.publicKey,
-                newAccountPubkey:chest[0],
-                lamports:web3.LAMPORTS_PER_SOL,
-                programId:programKey,//web3.SystemProgram.programId,
-                space:10,
-            }),
-            web3.SystemProgram.createAccount({
-                fromPubkey:alice.publicKey,
-                newAccountPubkey:bob.publicKey,
-                lamports:web3.LAMPORTS_PER_SOL/100,
-                programId:web3.SystemProgram.programId,
-                space:10,
-            }),
-            //web3.SystemProgram.transfer({fromPubkey:alice.publicKey, toPubkey:chest[0], lamports:web3.LAMPORTS_PER_SOL}),
-            
-        )
-    
-        await web3.sendAndConfirmTransaction(connection, transaction, [alice, chestKey]);*/
+        const instruction_data_1 = Uint8Array.from([chest[1],0]);
 
-        //const instruction_data=Buffer.from(chest[1])
-
-        const instruction_data = Uint8Array.from([chest[1]]);
-
-        const transaction2 = new web3.Transaction().add(
+        const transaction1 = new web3.Transaction().add(
             new web3.TransactionInstruction({
                 programId:programKey,
                 keys:[
@@ -175,25 +159,34 @@ describe("escrow", ()=>{
                     //{pubkey:chest[0], isSigner:false, isWritable:true},
                     {pubkey:web3.SystemProgram.programId, isSigner:false, isWritable:false},
                 ],
-                data:Buffer.from(instruction_data),
+                data:Buffer.from(instruction_data_1),
 
-            })
+            }),
+            web3.SystemProgram.transfer({fromPubkey:alice.publicKey, toPubkey:chest[0], lamports:web3.LAMPORTS_PER_SOL})
         );
 
-        /*const transaction2 = new web3.Transaction().add(
+        await web3.sendAndConfirmTransaction(connection,transaction1,[alice]);
+        
+
+        console.log('transaction1 finished');
+
+        const instruction_data_2 = Uint8Array.from([chest[1],1]);
+
+        const transaction2 = new web3.Transaction().add(
             new web3.TransactionInstruction({
                 programId:programKey,
                 keys:[
-                    {pubkey:alice.publicKey, isSigner:true, isWritable:false},
-                    {pubkey:bob.publicKey, isSigner:false, isWritable:false},
-                    {pubkey:chest[0], isSigner:false, isWritable:false},
-                    {pubkey:web3.SystemProgram.programId, isSigner:false, isWritable:false}
-                ]
-
+                    {pubkey:alice.publicKey, isSigner:false, isWritable:false},
+                    {pubkey:bob.publicKey, isSigner:true, isWritable:true},
+                    {pubkey:chest[0], isSigner:false, isWritable:true},
+                    //{pubkey:chest[0], isSigner:false, isWritable:true},
+                    {pubkey:web3.SystemProgram.programId, isSigner:false, isWritable:false},
+                ],
+                data:Buffer.from(instruction_data_2),
             })
-        );*/
-
-        await web3.sendAndConfirmTransaction(connection,transaction2,[alice]);
+        );
+    
+        await web3.sendAndConfirmTransaction(connection, transaction2, [bob]);
 
 
         const aliceBalance = await connection.getBalance(alice.publicKey);
@@ -206,7 +199,8 @@ describe("escrow", ()=>{
 
         const bobBalance = await connection.getBalance(bob.publicKey);
 
-        expect(bobBalance).to.equal(web3.LAMPORTS_PER_SOL/10);
+        // 5 sol initialized + 1 sol - cost transaction
+        expect(bobBalance).to.equal(6*web3.LAMPORTS_PER_SOL-5000);
     
 
     });
