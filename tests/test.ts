@@ -16,8 +16,17 @@ describe("escrow", ()=>{
         'confirmed',
     );
 
+    const alice = web3.Keypair.generate();
 
-    it("alice sends to bob", async ()=> {
+    
+
+    const bob = web3.Keypair.generate();
+
+        //const chest = web3.Keypair.generate();
+    const chest = web3.PublicKey.findProgramAddressSync([Buffer.from("chestb")],programKey);
+
+
+    /*it("alice sends to bob", async ()=> {
         
     
         //console.log(connection)
@@ -33,8 +42,9 @@ describe("escrow", ()=>{
             lastValidBlockHeight:latestBlockhash.lastValidBlockHeight
         });
     
-    
-        const bob = web3.Keypair.generate();
+        const aliceBalance = await connection.getBalance(alice.publicKey);
+        expect(aliceBalance).to.equal(5 * web3.LAMPORTS_PER_SOL);
+        
     
     
     
@@ -51,18 +61,12 @@ describe("escrow", ()=>{
         const bobBalance = await connection.getBalance(bob.publicKey);
         expect(bobBalance).to.equal(1*web3.LAMPORTS_PER_SOL);
     
-    });
+    });*/
 
-    it("sends sol to program", async () => {
+    it("initialize escrow", async () => {
 
         // airdrop 5 sol to alice
 
-        const alice = web3.Keypair.generate();
-
-        //const bob = web3.Keypair.generate();
-
-        //const chest = web3.Keypair.generate();
-        const chest = web3.PublicKey.findProgramAddressSync([Buffer.from("chestb")],programKey);
 
         let airdropSignature = await connection.requestAirdrop(alice.publicKey, 5 * web3.LAMPORTS_PER_SOL);
         const latestBlockhash = await connection.getLatestBlockhash('confirmed');
@@ -74,33 +78,69 @@ describe("escrow", ()=>{
         });
         
         
-    
-        const transaction = new web3.Transaction().add(
-            /*web3.SystemProgram.createAccount({
-                fromPubkey:alice.publicKey,
-                newAccountPubkey:chest.publicKey,
-                lamports:web3.LAMPORTS_PER_SOL,
+
+        const instruction_data_1 = Uint8Array.from([chest[1],0]);
+
+        const transaction1 = new web3.Transaction().add(
+            new web3.TransactionInstruction({
                 programId:programKey,
-                space:10,
-            }),*/
-            web3.SystemProgram.transfer({
-                fromPubkey:alice.publicKey,
-                toPubkey:chest[0],
-                lamports:1*web3.LAMPORTS_PER_SOL,
-            })
+                keys:[
+                    {pubkey:alice.publicKey, isSigner:true, isWritable:false},
+                    {pubkey:bob.publicKey, isSigner:false, isWritable:true},
+                    {pubkey:chest[0], isSigner:false, isWritable:true},
+                    //{pubkey:chest[0], isSigner:false, isWritable:true},
+                    {pubkey:web3.SystemProgram.programId, isSigner:false, isWritable:false},
+                ],
+                data:Buffer.from(instruction_data_1),
+
+            }),
+            web3.SystemProgram.transfer({fromPubkey:alice.publicKey, toPubkey:chest[0], lamports:web3.LAMPORTS_PER_SOL})
         );
-    
-        await web3.sendAndConfirmTransaction(connection, transaction, [alice]);
+
+        await web3.sendAndConfirmTransaction(connection,transaction1,[alice]);
+        
+
+        console.log('transaction1 finished');
+        
 
         const programBalance = await connection.getBalance(chest[0]);
 
-        expect(programBalance).to.equal(1*web3.LAMPORTS_PER_SOL);
+        expect(programBalance).to.equal(1*web3.LAMPORTS_PER_SOL+await connection.getMinimumBalanceForRentExemption(1));
     
     
 
     });
 
-    it("program sends sol to me", async () => {
+    it("bob put sol in chest", async () => {
+
+        let airdropSignature = await connection.requestAirdrop(bob.publicKey, 5 * web3.LAMPORTS_PER_SOL);
+        const latestBlockhash = await connection.getLatestBlockhash('confirmed');
+    
+        await connection.confirmTransaction({
+            signature:airdropSignature,
+            blockhash:latestBlockhash.blockhash,
+            lastValidBlockHeight:latestBlockhash.lastValidBlockHeight
+        });
+    
+        const bobBalance = await connection.getBalance(bob.publicKey);
+        expect(bobBalance).to.equal(5 * web3.LAMPORTS_PER_SOL);
+
+
+        const transaction = new web3.Transaction().add(
+            web3.SystemProgram.transfer({
+                fromPubkey:bob.publicKey,
+                toPubkey:chest[0],
+                lamports:1*web3.LAMPORTS_PER_SOL,
+            })
+        );
+
+        await web3.sendAndConfirmTransaction(connection, transaction, [bob]);
+
+        const chestBalance = await connection.getBalance(chest[0]);
+        expect(chestBalance).to.equal(2*web3.LAMPORTS_PER_SOL + await connection.getMinimumBalanceForRentExemption(1));
+    });
+
+    it("program sends sol to winner", async () => {
 
         // airdrop 5 sol to alice
 
@@ -131,45 +171,10 @@ describe("escrow", ()=>{
         console.log('chest seeds');
         console.log(chest[1]);
 
-        const bob = web3.Keypair.generate();
-
-        console.log('bob');
-        console.log(bob.publicKey.toBase58());
-
-        let airdropSignature2 = await connection.requestAirdrop(bob.publicKey, 5 * web3.LAMPORTS_PER_SOL);
-        const latestBlockhash2 = await connection.getLatestBlockhash('confirmed');
-    
-        await connection.confirmTransaction({
-            signature:airdropSignature,
-            blockhash:latestBlockhash.blockhash,
-            lastValidBlockHeight:latestBlockhash.lastValidBlockHeight
-        });
 
         //chest[1]+=1;
 
 
-        const instruction_data_1 = Uint8Array.from([chest[1],0]);
-
-        const transaction1 = new web3.Transaction().add(
-            new web3.TransactionInstruction({
-                programId:programKey,
-                keys:[
-                    {pubkey:alice.publicKey, isSigner:true, isWritable:false},
-                    {pubkey:bob.publicKey, isSigner:false, isWritable:true},
-                    {pubkey:chest[0], isSigner:false, isWritable:true},
-                    //{pubkey:chest[0], isSigner:false, isWritable:true},
-                    {pubkey:web3.SystemProgram.programId, isSigner:false, isWritable:false},
-                ],
-                data:Buffer.from(instruction_data_1),
-
-            }),
-            web3.SystemProgram.transfer({fromPubkey:alice.publicKey, toPubkey:chest[0], lamports:web3.LAMPORTS_PER_SOL})
-        );
-
-        await web3.sendAndConfirmTransaction(connection,transaction1,[alice]);
-        
-
-        console.log('transaction1 finished');
 
         const instruction_data_2 = Uint8Array.from([chest[1],1]);
 
@@ -200,8 +205,8 @@ describe("escrow", ()=>{
 
         const bobBalance = await connection.getBalance(bob.publicKey);
 
-        // 5 sol initialized + 1 sol - cost transaction
-        expect(bobBalance).to.equal(6*web3.LAMPORTS_PER_SOL-5000);
+        // 5 sol initialized + 1 sol win - cost of 2 transactions
+        expect(bobBalance).to.equal(6*web3.LAMPORTS_PER_SOL-2*5000);
     
 
     });
