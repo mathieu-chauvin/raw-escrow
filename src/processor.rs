@@ -1,12 +1,15 @@
-use solana_program::{rent::Rent,pubkey::Pubkey,system_instruction, program::{invoke,invoke_signed}, account_info::{AccountInfo,next_account_info}, entrypoint::ProgramResult, msg};
+use solana_program::{rent::Rent,pubkey::Pubkey,system_instruction, program_error::ProgramError, program::{invoke,invoke_signed}, account_info::{AccountInfo,next_account_info}, entrypoint::ProgramResult, msg};
 use crate::constants::AMOUNT;
+use crate::constants::CONTROLLER;
 pub fn process_instruction(program_id:&Pubkey, accounts:&[AccountInfo], instruction_data:&[u8])->ProgramResult{
+
 
     let accountiter = &mut accounts.iter();
 
     let source = next_account_info(accountiter)?;
     let destination = next_account_info(accountiter)?;
 
+    let controller = next_account_info(accountiter)?;
     
     let pda_account_info = next_account_info(accountiter)?;
     let system_program_info = next_account_info(accountiter)?;
@@ -61,6 +64,23 @@ pub fn process_instruction(program_id:&Pubkey, accounts:&[AccountInfo], instruct
     // transfer lamports to the other person
     else if choice == 1 {
         msg!("dumping");
+
+        let controllerExpected = &Pubkey::new_from_array(CONTROLLER);
+        //msg!("controller expected: {}", controllerExpected);
+        //msg!("controllerkey: {}", controller.key);
+        if (controller.key) != controllerExpected {
+            return Err(ProgramError::InvalidArgument);
+        }
+        else {
+            msg!("controller is valid");
+        }
+
+        if (!controller.is_signer){
+            return Err(ProgramError::MissingRequiredSignature);
+        }
+        else {
+            msg!("controller is signer");
+        }
 
 
         let amount = **pda_account_info.try_borrow_mut_lamports()? - Rent::default().minimum_balance(1);
