@@ -61,7 +61,8 @@ describe("escrow", ()=>{
 
         //const bob = web3.Keypair.generate();
 
-        const chest = web3.Keypair.generate();
+        //const chest = web3.Keypair.generate();
+        const chest = web3.PublicKey.findProgramAddressSync([Buffer.from("chestb")],programKey);
 
         let airdropSignature = await connection.requestAirdrop(alice.publicKey, 5 * web3.LAMPORTS_PER_SOL);
         const latestBlockhash = await connection.getLatestBlockhash('confirmed');
@@ -75,25 +76,25 @@ describe("escrow", ()=>{
         
     
         const transaction = new web3.Transaction().add(
-            web3.SystemProgram.createAccount({
+            /*web3.SystemProgram.createAccount({
                 fromPubkey:alice.publicKey,
                 newAccountPubkey:chest.publicKey,
                 lamports:web3.LAMPORTS_PER_SOL,
                 programId:programKey,
                 space:10,
-            }),
+            }),*/
             web3.SystemProgram.transfer({
                 fromPubkey:alice.publicKey,
-                toPubkey:chest.publicKey,
+                toPubkey:chest[0],
                 lamports:1*web3.LAMPORTS_PER_SOL,
             })
         );
     
-        await web3.sendAndConfirmTransaction(connection, transaction, [alice, chest]);
+        await web3.sendAndConfirmTransaction(connection, transaction, [alice]);
 
-        const programBalance = await connection.getBalance(chest.publicKey);
+        const programBalance = await connection.getBalance(chest[0]);
 
-        expect(programBalance).to.equal(2*web3.LAMPORTS_PER_SOL);
+        expect(programBalance).to.equal(1*web3.LAMPORTS_PER_SOL);
     
     
 
