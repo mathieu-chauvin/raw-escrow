@@ -28,7 +28,9 @@ describe("escrow", ()=>{
     const alice = web3.Keypair.generate();
     const bob = web3.Keypair.generate();
         //const chest = web3.Keypair.generate();
-    const chest = web3.PublicKey.findProgramAddressSync([Buffer.from("chestb")],programKey);
+        
+    
+    const chest = web3.PublicKey.findProgramAddressSync([Buffer.from("chestb"), alice.publicKey.toBuffer(), bob.publicKey.toBuffer()],programKey);
     console.log('controllerKeypair');
     console.log(controllerKeypair.publicKey.toBase58());
 
@@ -171,7 +173,6 @@ describe("escrow", ()=>{
         //const chest = [chestKey.publicKey];
 
         //web3.Keypair.fromSeed
-        const chest = web3.PublicKey.findProgramAddressSync([Buffer.from("chestb")],programKey);
 
 
         console.log('chest');

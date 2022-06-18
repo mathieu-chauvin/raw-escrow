@@ -19,9 +19,9 @@ pub fn process_instruction(program_id:&Pubkey, accounts:&[AccountInfo], instruct
     let choice = instruction_data[1];
 
 
-    let pda_expected = Pubkey::create_program_address(&[b"chestb",&[bump_seed]], program_id).unwrap();
-
-    assert_eq!(&pda_expected, pda_account_info.key);
+    let pda_expected = Pubkey::create_program_address(&[b"chestb",source.key.as_ref(),destination.key.as_ref(),&[bump_seed]], program_id).unwrap();
+    msg!("pda_expected: {:?}", pda_expected);
+    //assert_eq!(&pda_expected, pda_account_info.key);
 
     // initialize the PDA account
     if choice == 0 {
@@ -47,7 +47,7 @@ pub fn process_instruction(program_id:&Pubkey, accounts:&[AccountInfo], instruct
                     pda_account_info.clone(),
                     system_program_info.clone()
                 ],
-                &[&[b"chestb", &[bump_seed]]]
+                &[&[b"chestb",source.key.as_ref(),destination.key.as_ref(), &[bump_seed]]]
             )?;
         
             msg!("account created");
